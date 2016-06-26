@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">WUDN</string>
+
+    <string name="distance">Distance</string>
+    <string name="go_button">GO!</string>
+    <string name="action_settings">Settings</string>
+</resources>
