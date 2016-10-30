@@ -8,6 +8,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -15,10 +16,17 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.Toast;
+import android.content.Intent;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.List;
+import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class WudnMain extends Activity implements LocationListener {
     private LocationManager mLocationManager;
@@ -77,7 +85,7 @@ public class WudnMain extends Activity implements LocationListener {
     @Override
     protected void onResume() {
         super.onResume();
-        if (mLocationManager!=null) {
+        if (mLocationManager != null) {
             // ロケーションマネージャのリスナーを登録
             Criteria criteria = new Criteria();
             criteria.setAccuracy(Criteria.ACCURACY_MEDIUM);
@@ -85,7 +93,7 @@ public class WudnMain extends Activity implements LocationListener {
             String provider = mLocationManager.getBestProvider(criteria, true);
             mLocationManager.requestLocationUpdates(provider, 0, 0, this);
         } else {
-            Log.v("MAIN","no location manager");
+            Log.v("MAIN", "no location manager");
             this.onDestroy();
         }
     }
@@ -93,7 +101,7 @@ public class WudnMain extends Activity implements LocationListener {
     @Override
     public void onLocationChanged(Location location) {
         // ロケーションが変更された時
-        Log.v("MAIN","Location Changed");   //log
+        Log.v("MAIN", "Location Changed");   //log
         if (!mCurrentLoc.isUpdated()) {  // CurrentLocが未更新ならば、更新されることを通知（本当はGoボタンを非アクティブにしたい...）
             Toast.makeText(this, "Connected! You are able to Go!", Toast.LENGTH_LONG).show();
         }
@@ -131,10 +139,62 @@ public class WudnMain extends Activity implements LocationListener {
             for (int i = 0; i < list_address.size(); i++) {
                 Log.v("MAIN", "AddressLine[" + i + "]:" + list_address.get(i).getAddressLine(1));   //log
             }
-            Toast.makeText(this, list_address.get(2).getAddressLine(1), Toast.LENGTH_LONG).show();
+            if (list_address.size() > 0) {
+                Toast.makeText(this, list_address.get(0).getAddressLine(1), Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(this, "No location found.", Toast.LENGTH_LONG).show();
+            }
+
         } else {  // Address取れなかった場合
             Log.v("MAIN", "[Geocoder] No address found");   //log
             Toast.makeText(this, "Address not found!", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    public void saveCurrentLoc(View view) throws java.io.IOException {
+        if (mCurrentLoc.isUpdated()) {  // CurrentLocが未更新ならば、何もせず
+            Geocoder geocoder = new Geocoder(this, Locale.JAPAN);
+            List<Address> list_address = geocoder.getFromLocation(mCurrentLoc.getCurrentLatitude(), mCurrentLoc.getCurrentLongitude(), 5);
+            String address = "";
+            if (!list_address.isEmpty()) {
+                if (list_address.size() > 0) {
+                    address = "Address" + list_address.get(0).getAddressLine(1);
+                }
+            }
+            Date now = new Date(System.currentTimeMillis());
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy'年'MM'月'dd'日'　kk'時'mm'分'ss'秒'");
+            String str = "Time:" + sdf.format(now) + "Lat:" + mCurrentLoc.getCurrentLatitude() + "Lon" + mCurrentLoc.getCurrentLongitude() + address;
+
+            // 外部ストレージにログ用のディレクトリ作成 -> 使えない
+            //File logpath = new File(Environment.getExternalStorageDirectory(), "wudn");
+            // ダウンロードストレージにディレクトリ作成
+            File logpath = new File(Environment.getDataDirectory(), "wudn");
+            Log.v("MAIN", "Log file path :" + logpath.getAbsolutePath());   //log
+            if (logpath.exists() != true) {  //ディレクトリがない場合は作成
+                logpath.mkdir();
+            }
+            // Logfileのオープン
+            File logfile = new File(logpath, "locLog.txt");
+            FileWriter out = null;
+            try {
+                // ログの追加書き込み
+                out = new FileWriter(logfile, true);
+                out.write(str);
+                out.write("\n");
+                Toast.makeText(this, "Saved.", Toast.LENGTH_SHORT).show();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                if (out != null) {
+                    try {
+                        out.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
     }
 }

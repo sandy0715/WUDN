@@ -3,5 +3,9 @@
 
     <string name="distance">Distance</string>
     <string name="go_button">GO!</string>
+    <string name="save_button">save</string>
     <string name="action_settings">Settings</string>
+    <string name="title_activity_wudn_start">WudnStart</string>
+
+    <string name="launch_message">START</string>
 </resources>
